@@ -1,0 +1,1026 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>pixi.js example 1</title>
+<style>
+body {
+margin: 0px 0px;
+padding: 0em 0.625em 0em;
+background-color: #050505;
+}
+</style>
+<script src="jquery-1.8.3.min.js"></script>
+<script src="pixi.js"></script>
+<script src="WebGLRenderer.js"></script>
+
+</head>
+<audio src="exp1.wav" id="expl">
+<audio src="life.wav" id="life">
+<audio src="x.wav" autoplay="autoplay" loop="loop" id="theme">
+<audio src="lvl1Boss_music.wav" loop="loop" id="lvl1Boss_music">
+<audio src="bullet.wav" loop="loop" id="bullet">
+<audio src="steam.wav" id="steam">
+<audio src="Boss_exp.mp3" id="Boss_exp" >
+<body>
+	
+<script>
+
+document.body.style.marginLeft = window.innerWidth/4+"px";
+
+var assetsToLoader = [ "SpriteSheet.json"];
+loader = new PIXI.AssetLoader(assetsToLoader);
+loader.onComplete = onAssetsLoaded
+loader.load();
+
+var renderer = PIXI.autoDetectRenderer(window.innerWidth/2, window.innerHeight);
+var killed = 0;
+var score = 0;
+var current_time= 0;
+var exp_time = 0;
+var exp_count = 0;
+var explosion;
+var double_time = 0;
+var counter = 0;
+var flag = 0;
+var times = 0;
+var hit_count = 0;
+var positn = false;
+var intro = true;
+var heat_counter = 0;
+var victory = false;
+var bullet = [];
+var bull_count = 1000;
+var enemy = [];
+var enemy_fire =[];
+var lane = [];
+var enemy_count = 1;
+var count = 0;
+var current2 = 0;
+var current = 0;
+var append_enemy_timer = 1000;
+var exp_timer =[];
+var full_health = 20;
+var fire_count = 0;
+var heat_lvl = 0;
+var life_count = 3;
+var heat_arr = [];
+var enemy_fire_count =0;
+var explosionTextures = [];
+
+function onAssetsLoaded()
+{
+	for (var i=0; i < 26; i++) 
+	{
+		var texture = PIXI.Texture.fromFrame("Explosion_Sequence_A " + (i+1) + ".png");
+		explosionTextures.push(texture);
+	};
+}
+
+var stage = new PIXI.Stage(0x000000,true);
+
+var background = PIXI.Sprite.fromImage("background_tst.png");
+var background2 = PIXI.Sprite.fromImage("background_tst.png");
+var background3 = PIXI.Sprite.fromImage("background_tst.png");
+
+var lvl1_enemy = new PIXI.Sprite(PIXI.Texture.fromImage("lvl1_enemy.png"));
+var lvl1 = new PIXI.Sprite(PIXI.Texture.fromImage("lvl1.png"));
+var lvl_2 = new PIXI.Sprite(PIXI.Texture.fromImage("lvl2.png"));
+var gameover = new PIXI.Sprite(PIXI.Texture.fromImage("gameover.png"));
+var newgame = new PIXI.Sprite(PIXI.Texture.fromImage("reset.png"));
+var token = new PIXI.Sprite(PIXI.Texture.fromImage("token.png"));
+var x2 = new PIXI.Sprite(PIXI.Texture.fromImage("double.png"));
+//var heat_back = new PIXI.Sprite(PIXI.Texture.fromImage("heat_back.jpg"));
+var overheated = new PIXI.Sprite(PIXI.Texture.fromImage("overheated.png"));
+var life = new PIXI.Sprite(PIXI.Texture.fromImage("life.png"));
+var sound= false;
+var play_pause=false;
+var lvl2 = false;
+var fireball = [];
+var temp = null;
+
+background.anchor.x=0.5;
+background.anchor.y=0.5;
+background2.anchor.x=0.5;
+background2.anchor.y=0.5;
+background3.anchor.x=0.5;
+background3.anchor.y=0.5;
+
+background.position.x = window.innerWidth/4;
+background.position.y = window.innerHeight/2;
+background2.position.x = window.innerWidth/4;
+background2.position.y = background.position.y - window.innerHeight;
+background3.position.x = window.innerWidth/4;
+background3.position.y = background2.position.y - window.innerHeight;
+stage.addChild(background);
+stage.addChild(background2);
+stage.addChild(background3);
+
+document.body.appendChild(renderer.view);
+
+requestAnimFrame( animate );
+
+var texture1 = PIXI.Texture.fromImage("jet.png");
+var texture2 = PIXI.Texture.fromImage("bullet.png");
+var texture3 = PIXI.Texture.fromImage("enemy.png");
+var newplane = PIXI.Texture.fromImage("jet_tokenized.png");
+var right = PIXI.Texture.fromImage("jet_right.png");
+var left = PIXI.Texture.fromImage("jet_left.png");
+var token_right = PIXI.Texture.fromImage("jet_tokenized_right.png");
+var token_left = PIXI.Texture.fromImage("jet_tokenized_left.png");
+
+lvl1.anchor.x = 0.5;
+lvl1.anchor.y = 0.5;
+lvl1.position.x = window.innerWidth/4;
+lvl1.position.y = window.innerHeight/2;
+lvl1.alpha = 0;
+stage.addChild(lvl1);
+
+lvl_2.anchor.x = 0.5;
+lvl_2.anchor.y = 0.5;
+lvl_2.position.x = window.innerWidth/4;
+lvl_2.position.y = window.innerHeight/2;
+lvl_2.alpha = 0;
+stage.addChild(lvl_2);
+
+gameover.anchor.x = 0.5;
+gameover.anchor.y = 0.5;
+gameover.position.x = window.innerWidth/4;
+gameover.position.y = window.innerHeight/2;
+gameover.alpha = 0;
+
+newgame.anchor.x = 0.5;
+newgame.anchor.y = 0.5;
+newgame.position.x = window.innerWidth/4;
+newgame.position.y = window.innerHeight/2 + 100;
+newgame.setInteractive(true);
+newgame.buttonMode=(true);
+newgame.alpha = 0;
+
+var scoreText = new PIXI.Text("Score: 0", "bold 40px Calibri", "#ffffff");
+var winner = new PIXI.Text("winner", "bold 80px Avro", "#0D286E","#C6D4F8",5);
+
+stage.addChild(scoreText);
+
+winner.alpha = 0;
+winner.anchor.x = 0.5;
+winner.anchor.y = 0.5;
+winner.position.x = window.innerWidth/4;
+winner.position.y = window.innerHeight/2;
+
+var plane = new PIXI.Sprite(texture1);
+bullet[0] = new PIXI.Sprite(texture2);
+
+plane.setInteractive(true);
+plane.buttonMode = true;
+plane.alive = true;
+plane.x2 = false;
+plane.shield = false;
+plane.heated = false;
+plane.anchor.x = 0.5;
+plane.anchor.y = 0.5;
+plane.position.x = 350;
+plane.position.y = 550;
+stage.addChild(plane);
+
+var del = new PIXI.Texture.fromImage("delete.png");
+var button_close=new PIXI.Sprite(del);
+button_close.anchor.x = 0.5;
+button_close.anchor.y = 0.5;
+button_close.position.x = window.innerWidth/2-150;
+button_close.position.y = window.innerHeight-50;		
+button_close.setInteractive(true);
+stage.addChild(button_close);
+
+
+newgame.mousedown = newgame.touchstart = function(data)
+{
+	window.open("index.html","_self");
+}
+
+button_close.mousedown = button_close.touchstart = function(data)
+{
+	var answer = confirm("Really want to close the window");
+    if (answer) {
+        window.close();
+    }
+}
+
+var play = new PIXI.Texture.fromImage("play.png");
+var pause = new PIXI.Texture.fromImage("pause.png");
+var button_play=new PIXI.Sprite(pause);
+
+button_play.anchor.x = 0.5;
+button_play.anchor.y = 0.5;		
+button_play.position.x = window.innerWidth/2-100;
+button_play.position.y = window.innerHeight-50;	
+button_play.setInteractive(true);
+stage.addChild(button_play);
+
+button_play.mousedown = button_play.touchstart = function(data)
+{
+	if(play_pause==false)
+	{
+		play_pause=true;
+		button_play.setTexture(play);
+		document.getElementById('theme').pause();
+		document.getElementById('lvl1Boss_music').pause();	
+	}
+	else
+	{
+		if(lvl2==true && sound==false)
+		{
+			document.getElementById('lvl1Boss_music').play();
+		}
+		else if(lvl2==false && sound==false)
+		{
+			document.getElementById('theme').play();
+		}
+		play_pause=false;
+	 	button_play.setTexture(pause);
+	}
+}
+
+
+var mute = new PIXI.Texture.fromImage("mute.png");
+var mute2 = new PIXI.Texture.fromImage("mute2.png");
+var button=new PIXI.Sprite(mute);
+
+button.anchor.x = 0.5;
+button.anchor.y = 0.5;
+button.position.x = window.innerWidth/2-50;
+button.position.y = window.innerHeight-50;				
+button.setInteractive(true);
+stage.addChild(button);
+
+button.mousedown = button.touchstart = function(data)
+{
+	if(sound==false)
+	{				
+		sound=true;
+		button.setTexture(mute2);
+		document.getElementById('theme').pause();
+		document.getElementById('lvl1Boss_music').pause();	
+	}
+	else
+	{	
+		if(lvl2==true)
+		{
+			document.getElementById('lvl1Boss_music').play();
+		}
+		else
+		{
+			document.getElementById('theme').play();
+		}
+		sound=false;
+		button.setTexture(mute);
+	}
+}
+
+for(var x = 0; x < 7 ; x++)
+{
+	lane[x] = 100*x;
+}
+
+enemy[0] = new PIXI.Sprite(texture3);
+enemy[0].alive = true;
+enemy[0].position.x = 350;
+enemy[0].position.y = -50;
+enemy[0].anchor.x = 0.5;
+enemy[0].anchor.y = 0.5;
+stage.addChild(enemy[0]);
+
+var enemy_append = null;
+
+/*heat_back.anchor.x = 0.5;
+heat_back.anchor.y = 0.5;
+heat_back.position.x = 80;
+heat_back.position.y = 10;
+stage.addChild(heat_back);
+*/
+
+var life_arr = [];
+for(var i = 0 ; i < life_count ; i++)
+{
+	life_arr[i] = new PIXI.Sprite(PIXI.Texture.fromImage("jet_life.png"));
+	life_arr[i].anchor.x = 0.5;
+	life_arr[i].anchor.y = 0.5;
+	life_arr[i].position.x  = (window.innerWidth/2 - 40*i) - 35;
+	life_arr[i].position.y = 25;
+	stage.addChild(life_arr[i]);
+}
+
+var health = [];
+for(var i = 0 ; i < full_health ; i++)
+{
+	health[i] = new PIXI.Sprite(PIXI.Texture.fromImage("health.jpg"));
+	health[i].anchor.x = 0.5;
+	health[i].anchor.y = 0.5;
+	health[i].position.x  = (window.innerWidth/4 - 150) + (i+1)*15;
+	health[i].position.y = -10; 
+	stage.addChild(health[i]);
+}
+
+
+plane.mouseover = plane.touchstart = function(data)
+{
+	this.data = data;
+	this.dragging = true;
+	//-----------------------------> INTRO "LEVEL 1"
+	level1 = setInterval(function(){
+		lvl1.alpha +=0.1;
+	},100);
+	//-----------------------------> REMOVAL OF "LEVEL 1"
+	end_level1 = setInterval(function(){
+		clearInterval(level1);
+		intro = false;
+		lvl1.alpha = 0;
+		stage.removeChild(lvl1);
+		clearInterval(end_level1);
+	},5000);
+	//-----------------------------> INTERVAL FOR LIFE TOKEN
+	setInterval(function(){
+		if(!play_pause)
+		{
+			life.position.x = lane[parseInt(Math.random()*7)];
+			life.position.y = Math.random()* (-100);
+			life.anchor.x = 0.5;
+			life.anchor.y = 0.5;
+			stage.addChild(life);
+		}
+	},7000);
+	//-----------------------------> INTERVAL FOR SHIELD TOKEN
+	setInterval(function(){
+		if(!play_pause)
+		{
+			token.position.x = lane[parseInt(Math.random()*7)];
+			token.position.y = Math.random()* (-100);
+			token.anchor.x = 0.5;
+			token.anchor.y = 0.5;
+			stage.addChild(token);
+		}
+	},10000);
+	//-----------------------------> INTERVAL FOR 2X TOKEN
+	setInterval(function(){
+		if(plane.x2 == false && intro == false && !play_pause)
+		{
+			x2.position.x = lane[parseInt(Math.random()*7)];
+			x2.position.y = Math.random()* (-300);
+			x2.anchor.x = 0.5;
+			x2.anchor.y = 0.5;
+			stage.addChild(x2);
+		}
+	},5000);
+	//-----------------------------> INTERVAL FOR ENEMY APPEND
+	enemy_append = setInterval(function(){
+		if (intro == false && !play_pause) 
+		{
+			enemy[enemy_count] = new PIXI.Sprite(texture3);
+			enemy[enemy_count].alive = true;
+			enemy[enemy_count].position.x = lane[parseInt(Math.random()*7)];
+			enemy[enemy_count].position.y = Math.random()* (-50);
+			enemy[enemy_count].anchor.x = 0.5;
+			enemy[enemy_count].anchor.y = 0.5;
+			stage.addChild(enemy[enemy_count]);
+			enemy_count ++;
+			if(lvl2==true)
+			{
+				enemy_fire[enemy_fire_count] = new PIXI.Sprite(PIXI.Texture.fromImage("fireball2.png"));
+				enemy_fire[enemy_fire_count].position.x = enemy[enemy_count-1].position.x;
+				enemy_fire[enemy_fire_count].position.y = enemy[enemy_count-1].position.y+20;
+				enemy_fire[enemy_fire_count].anchor.x = 0.5;
+				enemy_fire[enemy_fire_count].anchor.y = 0.5;		 	
+			 	stage.addChild(enemy_fire[enemy_fire_count]);
+			 	enemy_fire_count++;
+			}
+		};		 
+	},350);
+	//-----------------------------> INTERVAL FOR LEVEL 2 BEGINNING
+	lvl2_begin = setInterval(function(){
+		if(!play_pause)
+		{
+			lvl2=true;
+			if(lvl2==true)
+			{			
+				level2 = setInterval(function(){
+					lvl_2.alpha +=0.1;
+				},100);
+				//-----------------------------> INTERVAL FOR REMOVAL OF "LEVEL 2"
+				end_level2 = setInterval(function(){
+					clearInterval(level2);
+					lvl_2.alpha = 0;
+					stage.removeChild(lvl_2);
+					intro = false;
+					clearInterval(end_level2);
+				},5000);
+
+			}
+			clearInterval(lvl2_begin);
+		}
+	},10000);
+	//-----------------------------> INTERVAL FOR BOSS APPEARANCE
+	end_lvl1 = setInterval(function(){
+		if (intro == false && !play_pause) 
+		{
+			clearInterval(enemy_append);
+			document.getElementById('theme').pause();
+			lvl1_enemy.position.x = window.innerWidth/4;
+			lvl1_enemy.position.y = Math.random()* (-50);
+			lvl1_enemy.anchor.x = 0.5;
+			lvl1_enemy.anchor.y = 0.5;
+			stage.addChild(lvl1_enemy);
+			clearInterval(end_lvl1);
+			times = 1;
+			if(sound==false)
+			{
+				document.getElementById('lvl1Boss_music').play();
+			}
+		};	
+	},20000);
+	//-----------------------------> INTERVAL FOR BOSS FIRE
+	fire = setInterval(function(){
+		if(times == 1 && positn == true && !play_pause)
+		{
+			fireball[fire_count] = new PIXI.Sprite(PIXI.Texture.fromImage("fireball2.png"));
+			fireball[fire_count].position.x = lvl1_enemy.position.x;
+			fireball[fire_count].position.y = lvl1_enemy.position.y + 150;
+			fireball[fire_count].anchor.x = 0.5;
+			fireball[fire_count].anchor.y = 0.5;
+			stage.addChild(fireball[fire_count]);
+			if(plane.position.x > fireball[fire_count].position.x)
+			{
+				fireball[fire_count].direction = 1;
+			}
+			else
+			{
+				fireball[fire_count].direction = 0;	
+			}
+			fire_count++;
+		}
+	},1500);
+};
+//-----------------------------> PLANE MOUSE EVENTS
+plane.mousedown = plane.touchstart = function(data)
+{
+	clearInterval(temp);
+	if(plane.heated==false && plane.alive==true && sound==false)
+	{
+		document.getElementById('bullet').play();
+	}
+	if(this.burst)
+	{
+		clearInterval(temp);
+		clearInterval(enemy_append);
+	}
+	//-----------------------------> INTERVAL FOR PLANE FIRE WIHILE MOUSE HOLD
+	temp = setInterval(function(){
+		this.brust = true;
+		if (plane.heated == false && !play_pause) 
+		{
+			if(plane.x2 == false)
+			{
+				bullet[count] = new PIXI.Sprite(texture2);
+				bullet[count].anchor.x = 0.5;
+				bullet[count].anchor.y = 0.5;
+				bullet[count].position.x = plane.position.x - 2;;
+				bullet[count].position.y = plane.position.y - 58 - 8;
+				bullet[count].data = data;
+				stage.addChild(bullet[count]);
+				count ++;
+			}
+			else
+			{
+				bullet[count] = new PIXI.Sprite(texture2);
+				bullet[count].anchor.x = 0.5;
+				bullet[count].anchor.y = 0.5;
+				bullet[count].position.x = plane.position.x - 10;
+				bullet[count].position.y = plane.position.y - 58 - 8;
+				bullet[count].data = data;
+				stage.addChild(bullet[count]);
+				count ++;
+				bullet[count] = new PIXI.Sprite(texture2);
+				bullet[count].anchor.x = 0.5;
+				bullet[count].anchor.y = 0.5;
+				bullet[count].position.x = plane.position.x + 10;;
+				bullet[count].position.y = plane.position.y - 58 - 8;
+				bullet[count].data = data;
+				stage.addChild(bullet[count]);
+				count ++;
+			}
+		};
+		//-----------------------------> OVERHEATING LEVEL 
+		/*if(heat_counter == 4)
+		{
+			heat_arr[heat_lvl] = new PIXI.Sprite(PIXI.Texture.fromImage("heat.jpg"));
+			heat_arr[heat_lvl].anchor.x = 0.5;
+			heat_arr[heat_lvl].anchor.y = 0.5;
+			heat_arr[heat_lvl].position.x = 13 + heat_lvl*15;
+			heat_arr[heat_lvl].position.y = heat_back.position.y;
+			stage.addChild(heat_arr[heat_lvl]);
+			heat_lvl++; 
+			if(heat_lvl == 10)
+			{
+				plane.heated = true;
+				document.getElementById('steam').play();
+				overheated.position.x = plane.position.x - 60;
+				overheated.position.y = plane.position.y - 60;
+				overheated.anchor.x = 0.5;
+				overheated.anchor.y = 0.5;
+				stage.addChild(overheated);
+				//heat_time = setInterval(function(){
+					//heat_arr[heat_lvl-1].alpha = 0;
+					while(heat_lvl !=0)
+					{
+					stage.removeChild(heat_arr[heat_lvl-1]);
+					heat_arr.splice(heat_lvl-1 , 1);
+					heat_lvl--;
+					if(heat_lvl == 0)
+					{
+						//clearInterval(heat_time);
+						plane.heated = false;
+						stage.removeChild(overheated);
+					}
+					//clearInterval(heat_time);
+				}
+				//,90);
+			}
+			heat_counter = 0;
+		}
+	
+		else
+		{
+			heat_counter++;
+		}*/
+	},90);
+}
+
+plane.mouseup = plane.touchend = function(data)
+{
+	plane.heated=false;
+	for(var i=0;i<heat_lvl;i++)
+	{
+		stage.removeChild(heat_arr[heat_lvl-1]);
+		heat_arr.splice(heat_lvl-1 , 1);
+		heat_lvl--;
+		if(heat_lvl == 0)
+		{
+			plane.heated = false;
+			stage.removeChild(overheated);
+		}
+	}
+	/*heat_time = setInterval(function(){
+	heat_arr[heat_lvl-1].alpha = 0;
+	stage.removeChild(heat_arr[heat_lvl-1]);
+	heat_arr.splice(heat_lvl-1 , 1);
+	heat_lvl--;
+	if(heat_lvl == 0)
+	{
+		clearInterval(heat_time);
+		plane.heated = false;
+		stage.removeChild(overheated);
+	}
+	},90);*/
+	document.getElementById('bullet').pause();
+	this.brust = false;	
+	clearInterval(temp);
+}
+
+plane.mousemove = plane.touchmove = function(data)
+{
+	if(this.dragging && !play_pause)
+	{
+		var newPosition = this.data.getLocalPosition(this.parent);
+		if(newPosition.x > this.position.x + 3)
+		{
+			if(plane.shield)
+			{
+				plane.setTexture(token_right);	
+			}
+			else{
+				plane.setTexture(right);
+			}
+		}
+		else if (newPosition.x < this.position.x - 3)
+		{
+			if(plane.shield)
+			{
+				plane.setTexture(token_left);	
+			}
+			else{
+				plane.setTexture(left);
+			}
+		}
+		else if(plane.shield)
+		{
+			plane.setTexture(newplane);
+		}
+		else
+		{
+			plane.setTexture(texture1);
+		}
+			this.position.x = newPosition.x;
+			this.position.y = newPosition.y;
+		}
+}
+
+//-----------------------------> FUNCTION FOR EXPLOSION
+function explode(postnx , postny)
+{
+	explosion = new PIXI.MovieClip(explosionTextures);
+	explosion.acc_time = 0;
+	exp_count++;
+	explosion.position.x = postnx;
+	explosion.position.y = postny;
+	explosion.anchor.x = 0.5;
+	explosion.anchor.y = 0.5;
+	explosion.animationSpeed = 0.3;
+	explosion.gotoAndPlay(5);
+	exp_timer.push(explosion);
+	stage.addChild(explosion);
+}
+
+
+//-----------------------------> FUNCTION ANIMATE FOR ANIMATIONS
+function animate() 
+{
+	requestAnimFrame( animate );
+	var d = new Date();
+	
+	if(!play_pause)
+	{
+    	if(plane.alive==false)
+    	{
+    		clearInterval(temp);
+
+    	}
+    
+    	for(var j = 0 ; j < enemy_fire_count ; j++)
+		{		
+			if(lvl2==true)
+			{
+				enemy_fire[j].position.y += 7;
+			}
+			//-----------------------------> CHECK IF PLANE WAS HIT BY ENEMY AMMO
+			if(plane.position.y <= enemy_fire[j].position.y + 35 && plane.position.y >= enemy_fire[j].position.y - 35 && plane.position.x >= enemy_fire[j].position.x - 35 && plane.position.x <= enemy_fire[j].position.x + 35 &&plane.alive==true)
+			{
+				if(plane.shield == false)
+				{
+					plane.alpha = 0;
+					life_count--;
+					explode(plane.position.x , plane.position.y);
+					
+					if(life_count == 0)
+					{
+						stage.removeChild(plane);
+						plane.alive = false;					
+						stage.removeChild(life_arr[life_count]);
+						life_arr.splice(life_count,1);
+					}
+					else
+					{
+						stage.removeChild(life_arr[life_count]);
+						life_arr.splice(life_count,1);
+						plane.setTexture(newplane);
+						current_time = d.getTime();
+						plane.shield = true;
+						plane.alpha = 1;
+					}		
+					enemy_fire[j].alpha = 0;
+					stage.removeChild(enemy_fire[j]);
+					enemy_fire.splice(j,1);
+					enemy_fire_count--;
+				}				
+			}
+		}
+		background.position.y +=2;
+		background2.position.y +=2;
+		background3.position.y +=2;
+		if(victory == true)
+		{
+			background.position.y +=5;
+			background2.position.y +=5;
+			background3.position.y +=5;		
+		}
+	
+		if(background.position.y>= 1.5*window.innerHeight)
+		{
+			background.position.y = -window.innerHeight/2+2;
+		}
+		
+		if(background2.position.y>= 1.5*window.innerHeight)
+		{
+			background2.position.y=-window.innerHeight/2+2;
+		}
+
+		if(background3.position.y>= 1.5*window.innerHeight)
+		{
+			background3.position.y=-window.innerHeight/2+2;
+		}
+
+		if(lvl1_enemy.position.y < 180)
+		{
+			lvl1_enemy.position.y += 2;
+		}
+		else if(times == 1)
+		{
+			if(times == 1)
+			{
+				positn = true;
+			}
+			for(var j = 0 ; j < fire_count ; j++)
+			{
+				fireball[j].position.y += 5;
+				if(fireball[j].direction == 1)
+				{
+					fireball[j].position.x += 3;
+				}
+				else
+				{
+					fireball[j].position.x -= 3;	
+				}
+
+				if(fireball[j].position.y >= 1000)
+				{
+					fireball.splice(j,1);
+					fire_count--;
+					break;	
+				}	
+				//-----------------------------> CHECK IF ENEMY WAS HIT BY BOSS AMMO
+				if(plane.position.y <= fireball[j].position.y + 35 && plane.position.y >= fireball[j].position.y - 35 && plane.position.x >= fireball[j].position.x - 35 && plane.position.x <= fireball[j].position.x + 35 && plane.alive==true)
+				{
+					if(plane.shield == false)
+					{
+						plane.alpha = 0;
+						life_count--;
+						explode(plane.position.x , plane.position.y);
+						if(life_count == 0)
+						{
+							stage.removeChild(plane);
+							plane.alive = false;
+							
+							stage.removeChild(life_arr[life_count]);
+							life_arr.splice(life_count,1);
+						}
+						else
+						{
+							stage.removeChild(life_arr[life_count]);
+							life_arr.splice(life_count,1);
+							plane.setTexture(newplane);
+							current_time = d.getTime();
+							plane.shield = true;
+							plane.alpha = 1;
+						}				
+						fireball[j].alpha = 0;
+						fireball.splice(j,1);
+						fire_count--;
+				}
+			}
+		}
+		for(var i = 0 ; i < full_health ; i++)
+		{
+			if(health[i].position.y < 10 && times == 1)
+			{
+				health[i].position.y += 1;
+			}	
+		}
+
+		if(lvl1_enemy.position.x >= window.innerWidth/4 + 200)
+		{
+			lvl1_enemy.position.x -= 5;
+			flag++;
+		} 
+		else if(lvl1_enemy.position.x <= window.innerWidth/4 - 200)
+		{
+			lvl1_enemy.position.x += 5;	
+			flag++;
+		}
+		else
+		{
+			if(flag % 2 == 0)
+			{
+				lvl1_enemy.position.x += 3;
+			}
+			else
+			{
+				lvl1_enemy.position.x -= 3;
+			}
+		}
+		//-----------------------------> CHECK IF PLANE HITS BOSS
+		if((((plane.position.x-30)<=(lvl1_enemy.position.x+150)&&(plane.position.y-50)<=lvl1_enemy.position.y && plane.position.x > lvl1_enemy.position.x)||((plane.position.x-30)<=(lvl1_enemy.position.x+50)&&(plane.position.y-50)<=lvl1_enemy.position.y+125 && plane.position.x > lvl1_enemy.position.x)||((plane.position.x+30)>=(lvl1_enemy.position.x-150)&&(plane.position.y-50)<=lvl1_enemy.position.y && plane.position.x < lvl1_enemy.position.x)||((plane.position.x+30)>=(lvl1_enemy.position.x-50)&&(plane.position.y-50)<=lvl1_enemy.position.y+125 && plane.position.x < lvl1_enemy.position.x))&&(times == 1 && plane.alive == true))
+		{
+			if(plane.shield == false)
+			{
+				plane.alpha = 0;
+				life_count--;
+				explode(plane.position.x , plane.position.y);
+				if(life_count == 0)
+				{
+					stage.removeChild(plane);
+					plane.alive = false;
+					stage.removeChild(life_arr[life_count]);
+					life_arr.splice(life_count,1);
+				}
+				else
+				{
+					stage.removeChild(life_arr[life_count]);
+					life_arr.splice(life_count,1);
+					plane.setTexture(newplane);
+					current_time = d.getTime();
+					plane.shield = true;
+					plane.alpha = 1;
+				}
+			}
+		}
+	}
+
+	x2.position.y += 5;
+	token.position.y += 5;
+	life.position.y += 5;
+
+	if(life.position.y > 800)
+	{
+		life.alpha = 1;
+	}
+	if(token.position.y > 800)
+	{
+		token.alpha = 1;
+	}
+
+	if(d.getTime()- current_time > 1000 && plane.shield==true)
+	{
+		plane.setTexture(texture1);
+		plane.shield=false;	
+	}
+
+	for(var k=0; k<exp_count;k++)
+	{
+		exp_timer[k].acc_time++;
+		if(exp_timer[k].acc_time > 50)
+		{
+			stage.removeChild(exp_timer[k]);
+			exp_timer.splice(k,1);
+			exp_count--;			
+		}
+	}
+	//-----------------------------> CHECK IF PLANE TAKES A SHIELD
+	if(plane.position.y <= token.position.y + 35 && plane.position.y >= token.position.y - 35 && plane.position.x >= token.position.x - 35 && plane.position.x <= token.position.x + 35)
+	{
+		plane.setTexture(newplane);
+		token.alpha = 0;
+		current_time = d.getTime();
+		plane.shield= true;
+	}
+	//-----------------------------> CHECK IF PLANE TAKES AN EXTRA LIFE
+	if(plane.position.y <= life.position.y + 35 && plane.position.y >= life.position.y - 35 && plane.position.x >= life.position.x - 35 && plane.position.x <= life.position.x + 35 && life.alpha !=0)
+	{
+		if(sound==false)
+		{
+			document.getElementById('life').play();
+		}
+		life_arr[life_count] = new PIXI.Sprite(PIXI.Texture.fromImage("jet_life.png"));
+		life_arr[life_count].anchor.x = 0.5;
+		life_arr[life_count].anchor.y = 0.5;
+		life_arr[life_count].position.x  = (window.innerWidth/2 - 40*life_count) - 35;
+		life_arr[life_count].position.y = 25;
+		stage.addChild(life_arr[life_count]);
+		life_count++;
+		life.alpha = 0;
+	}
+	//-----------------------------> CHECK IF PLANE TAKES 2X TOKEN
+	if(plane.position.y <= x2.position.y + 32.5 && plane.position.y >= x2.position.y - 32.5 && plane.position.x >= x2.position.x - 32.5 && plane.position.x <= x2.position.x + 32.5 )
+	{
+		x2.alpha = 0;
+		plane.x2 = true;
+	}
+
+	for(var j = 0 ; j < enemy_count ; j++)
+	{
+		enemy[j].position.y += 4;
+		//-----------------------------> CHECK IF PLANE HITS ENEMY
+		if(plane.position.y <= enemy[j].position.y + 50 && plane.position.y >= enemy[j].position.y - 50 && plane.position.x >= enemy[j].position.x - 50 && plane.position.x <= enemy[j].position.x + 50 && plane.alive == true && enemy[j].alive == true)
+		{
+			if(plane.shield!=true)
+			{
+				if(sound==false)
+				{
+					document.getElementById('expl').play();
+				}
+				plane.alpha = 0;
+				life_count--;
+				if(life_count == 0)
+				{
+					plane.alive = false;
+					stage.removeChild(life_arr[life_count]);
+					stage.removeChild(plane);
+				}
+				else
+				{
+					stage.removeChild(life_arr[life_count]);
+				}
+				explode(plane.position.x , plane.position.y);
+				stage.removeChild(enemy[j]);
+				enemy.splice(j,1);
+				enemy_count--;
+				plane.setTexture(newplane);
+				current_time = d.getTime();
+				plane.shield = true;
+				plane.alpha = 1;
+				break;
+			}
+		}
+		if(enemy[j].position.y > 1000)
+		{
+			enemy.splice(j,1);
+			enemy_count--;
+		}
+	}
+
+	for (var i = 0 ; i < count ; i++)
+	{
+		bullet[i].position.y -= 10;
+		//-----------------------------> CHECK IF PLANE AMMO HITS BOSS
+		if((((bullet[i].position.x)<=(lvl1_enemy.position.x+130)&&(bullet[i].position.y)<=lvl1_enemy.position.y && bullet[i].position.x > lvl1_enemy.position.x)||((bullet[i].position.x)<=(lvl1_enemy.position.x+40)&&(bullet[i].position.y)<=lvl1_enemy.position.y+140 && bullet[i].position.x > lvl1_enemy.position.x)||((bullet[i].position.x)>=(lvl1_enemy.position.x-130)&&(bullet[i].position.y)<=lvl1_enemy.position.y && bullet[i].position.x < lvl1_enemy.position.x)||((bullet[i].position.x)>=(lvl1_enemy.position.x-40)&&(bullet[i].position.y)<=lvl1_enemy.position.y+140 && bullet[i].position.x < lvl1_enemy.position.x))&&(times == 1 && plane.alive == true))
+		{
+			bullet[i].alpha = 0;
+			bullet.splice(i,1);
+			count--;
+			hit_count ++;
+			if(hit_count >= 15)
+			{
+				stage.removeChild(health[full_health - 1]);
+				full_health--;
+				if(full_health == 0)
+				{
+					if(sound==false)
+					{
+						document.getElementById('expl').play();
+					}
+					explode(lvl1_enemy.position.x , lvl1_enemy.position.y);
+					lvl1_enemy.alpha = 0;
+					stage.removeChild(lvl1_enemy);
+					times = 0;
+					victory = true;
+					for(var j = 0 ; j < fire_count ; j++)
+					{
+						fireball[j].alpha = 0;
+					}
+					document.getElementById('lvl1Boss_music').pause();
+				}
+				hit_count = 0;
+			}
+			continue;
+		}
+		if(bullet[i].position.y < -800)
+		{	
+			count--;
+			bullet.splice(i,1);
+		}
+		for(var j = 0 ; j < enemy_count ; j++)
+		{	
+			for(var j = 0 ; j < enemy_count; j++)
+			{
+				//-----------------------------> CHECK IF PLANE AMMO HITS ENEMY
+				if(bullet[i].position.y <= enemy[j].position.y + 33 && bullet[i].position.x >= enemy[j].position.x - 50 && bullet[i].position.x <= enemy[j].position.x + 50 && enemy[j].alive == true)
+				{
+					if(sound==false)
+					{
+						document.getElementById('expl').play();
+					}
+					explode(enemy[j].position.x , enemy[j].position.y);
+					enemy[j].alpha = 0;
+					bullet[i].alpha = 0;
+					bullet.splice(i,1);
+					count--;
+					enemy[j].alive = false;
+					enemy.splice(j,1);
+					enemy_count--;
+					killed++;
+					score++;
+					scoreText.setText("Score: "+score);
+				}
+			}
+		}
+	}
+	if(plane.alive == false) 
+	{
+		stage.addChild(gameover);
+		stage.addChild(newgame);
+		if(gameover.alpha <= 0.9 && gameover.alpha <= 0.9)
+		{
+			gameover.alpha += 0.1;
+			newgame.alpha += 0.1;
+		}
+		else
+			play_pause = true;
+	}
+	else if(victory)
+	{
+		stage.addChild(winner);
+		if(winner.alpha <= 0.9)
+			winner.alpha += 0.1;
+	}
+}
+renderer.render(stage);
+}
+</script>
+</body>
+</html>
